@@ -1,0 +1,18 @@
+# Python environments
+backend/venv/
+backend/venv312/
+
+# Python generated files
+__pycache__/
+*.py[cod]
+
+# Local runtime files
+*.pdf
+/tmp/
+backend/tmp/
+
+# Editor and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

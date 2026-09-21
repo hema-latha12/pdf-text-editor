@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>PDF Text Editor</title>
+<style>
+  :root {
+    --bg: #0b1020;
+    --bg-soft: #111827;
+    --panel: rgba(15, 23, 42, 0.82);
+    --panel-strong: #121a2d;
+    --panel-light: #ffffff;
+    --accent: #7c3aed;
+    --accent-2: #22c55e;
+    --accent-3: #38bdf8;
+    --border: rgba(148, 163, 184, 0.2);
+    --text: #e5ecff;
+    --muted: #9aa7c2;
+    --shadow: 0 24px 60px rgba(15, 23, 42, 0.5);
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    min-height: 100%;
+    font-family: Inter, "Segoe UI", Roboto, sans-serif;
+    background:
+      radial-gradient(circle at top left, rgba(124, 58, 237, 0.25), transparent 26%),
+      radial-gradient(circle at bottom right, rgba(56, 189, 248, 0.18), transparent 28%),
+      var(--bg);
+    color: var(--text);
+  }
+
+  body {
+    display: flex;
+    flex-direction: column;
+  }
+
+  button, .file-btn {
+    font: inherit;
+    border: none;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+  }
+
+  button:hover, .file-btn:hover {
+    transform: translateY(-1px);
+  }
+
+  button:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 18px 32px;
+    background: rgba(11, 16, 32, 0.8);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+  }
+
+  .brand-mark {
+    width: 36px;
+    height: 36px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.32), rgba(56, 189, 248, 0.25));
+    border: 1px solid rgba(255,255,255,0.18);
+    display: grid;
+    place-items: center;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08);
+  }
+
+  .brand-mark svg {
+    width: 20px;
+    height: 20px;
+    stroke: #f8faff;
+    stroke-width: 2;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .topbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  #status {
+    font-size: 13px;
+    color: var(--muted);
+    min-width: 200px;
+    text-align: right;
+  }
+
+  .primary-btn, .secondary-btn, .file-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border-radius: 12px;
+    padding: 11px 18px;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .primary-btn, .file-btn {
+    background: linear-gradient(135deg, var(--accent), #8b5cf6);
+    color: white;
+    box-shadow: 0 12px 24px rgba(124, 58, 237, 0.28);
+  }
+
+  .secondary-btn {
+    background: rgba(148, 163, 184, 0.08);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+
+  input[type=file] { display: none; }
+
+  .shell {
+    width: min(1200px, calc(100% - 32px));
+    margin: 0 auto;
+    padding: 36px 0 56px;
+    display: grid;
+    gap: 28px;
+  }
+
+  .hero {
+    display: grid;
+    grid-template-columns: 1.15fr 0.85fr;
+    gap: 28px;
+    align-items: center;
+    padding: 20px 0 0;
+  }
+
+  .hero-copy {
+    padding: 12px 4px;
+  }
+
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: rgba(124, 58, 237, 0.12);
+    color: #d9c3ff;
+    border: 1px solid rgba(124, 58, 237, 0.26);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  h1 {
+    margin: 18px 0 16px;
+    font-size: clamp(2.4rem, 4vw, 4.3rem);
+    line-height: 1.04;
+    letter-spacing: -0.06em;
+  }
+
+  .hero-copy p {
+    margin: 0;
+    max-width: 620px;
+    color: var(--muted);
+    font-size: 1.08rem;
+    line-height: 1.7;
+  }
+
+  .cta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-top: 24px;
+  }
+
+  .feature-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 24px;
+  }
+
+  .feature-pill {
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: rgba(15, 23, 42, 0.7);
+    border: 1px solid var(--border);
+    color: #dfe8ff;
+    font-size: 13px;
+  }
+
+  .preview-card {
+    position: relative;
+    background: linear-gradient(180deg, rgba(17, 24, 39, 0.9), rgba(15, 23, 42, 0.72));
+    border: 1px solid var(--border);
+    border-radius: 28px;
+    padding: 20px;
+    box-shadow: var(--shadow);
+  }
+
+  .document-window {
+    background: linear-gradient(180deg, #fdfcff, #eef3ff);
+    border-radius: 20px;
+    padding: 18px 18px 12px;
+    border: 1px solid rgba(148, 163, 184, 0.28);
+    min-height: 360px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .window-topbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-bottom: 14px;
+  }
+
+  .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: block;
+  }
+
+  .dot.red { background: #ff6b6b; }
+  .dot.yellow { background: #f4c95d; }
+  .dot.green { background: #52d681; }
+
+  .page-sheet {
+    border-radius: 14px;
+    background: white;
+    min-height: 270px;
+    padding: 26px 22px;
+    box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.5);
+    color: #1f2937;
+  }
+
+  .page-lines {
+    display: grid;
+    gap: 10px;
+    margin-top: 12px;
+  }
+
+  .line {
+    height: 12px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #dfe8ff, #e2e8f0, #dfe8ff);
+  }
+
+  .line:nth-child(1) { width: 82%; }
+  .line:nth-child(2) { width: 70%; }
+  .line:nth-child(3) { width: 90%; }
+  .line:nth-child(4) { width: 60%; }
+
+  .floating-tag {
+    position: absolute;
+    right: 22px;
+    bottom: 18px;
+    background: rgba(34, 197, 94, 0.14);
+    color: #baf7d8;
+    border: 1px solid rgba(34, 197, 94, 0.32);
+    border-radius: 999px;
+    padding: 8px 12px;
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .workspace {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  .workspace-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 6px 4px;
+  }
+
+  .workspace-header h2 {
+    margin: 0;
+    font-size: clamp(1.4rem, 2vw, 2rem);
+  }
+
+  .workspace-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+
+  #pages {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 28px;
+    min-height: 240px;
+    padding: 18px 0 0;
+  }
+
+  .empty-state {
+    width: min(820px, 100%);
+    margin: 20px auto 0;
+    padding: 54px 20px;
+    text-align: center;
+    color: var(--muted);
+    background: rgba(15, 23, 42, 0.48);
+    border: 1px dashed var(--border);
+    border-radius: 22px;
+  }
+
+  .empty-state h3 {
+    font-size: clamp(1.4rem, 2vw, 2rem);
+    margin: 0 0 10px;
+    color: var(--text);
+  }
+
+  .page-wrap {
+    position: relative;
+    background: #ffffff;
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    border-radius: 18px;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.15);
+    overflow: hidden;
+  }
+
+  .page-wrap img {
+    display: block;
+    object-fit: contain;
+    max-width: 100%;
+    border-radius: 18px;
+  }
+
+  .span-box {
+    position: absolute;
+    cursor: text;
+    white-space: pre;
+    overflow: visible;
+    color: transparent;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 0;
+    padding: 0;
+    margin: 0;
+    line-height: 1;
+    letter-spacing: 0;
+    user-select: text;
+    outline: none;
+    box-shadow: none;
+    transition: border-color 0.12s ease, background 0.12s ease;
+    caret-color: rgba(17, 24, 39, 1);
+  }
+
+  .span-box:hover {
+    background: rgba(124, 58, 237, 0.01);
+    border-color: rgba(124, 58, 237, 0.08);
+  }
+
+  .span-box.dirty {
+    background: rgba(34, 197, 94, 0.02);
+    border-color: rgba(34, 197, 94, 0.18);
+    color: rgba(17, 24, 39, 0.9);
+  }
+
+  .span-box:focus {
+    background: rgba(59, 130, 246, 0.025);
+    border-color: rgba(59, 130, 246, 0.18);
+    color: rgba(17, 24, 39, 1);
+    outline: none;
+  }
+
+  @media (max-width: 900px) {
+    .hero {
+      grid-template-columns: 1fr;
+    }
+
+    .topbar {
+      flex-wrap: wrap;
+      justify-content: center;
+      padding: 18px 20px;
+    }
+
+    #status {
+      min-width: unset;
+      text-align: center;
+    }
+  }
+
+  @media (max-width: 560px) {
+    .shell {
+      width: min(100% - 20px, 1200px);
+      padding-top: 16px;
+    }
+
+    .topbar-actions {
+      width: 100%;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .cta-row, .workspace-actions {
+      flex-direction: column;
+      width: 100%;
+    }
+
+    .primary-btn, .secondary-btn, .file-btn {
+      width: 100%;
+    }
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <div class="brand-mark" aria-hidden="true">
+      <svg viewBox="0 0 24 24">
+        <path d="M7 4.5h6.5A3.5 3.5 0 0 1 17 8v9.5A3.5 3.5 0 0 1 13.5 21H7A3 3 0 0 1 4 18V7.5A3 3 0 0 1 7 4.5Z"></path>
+        <path d="M8 9h7M8 12h7M8 15h5"></path>
+      </svg>
+    </div>
+    <span>PDF Text Editor</span>
+  </div>
+
+  <div class="topbar-actions">
+    <span id="status">No file loaded</span>
+    <label class="file-btn" for="fileInput">Open PDF</label>
+    <button id="saveBtn" class="primary-btn" disabled>Save edited PDF</button>
+  </div>
+</header>
+
+<div class="shell">
+  <section class="hero">
+    <div class="hero-copy">
+      <div class="eyebrow">Smart PDF editing</div>
+      <h1>Edit text in a PDF without breaking the layout.</h1>
+      <p>
+        Upload a document, click the text you want to change, and save a clean updated PDF while preserving
+        the original structure as closely as possible.
+      </p>
+
+      <div class="cta-row">
+        <label class="file-btn" for="fileInput">Choose PDF</label>
+        <button id="previewBtn" class="secondary-btn" type="button">How it works</button>
+      </div>
+
+      <div class="feature-list">
+        <span class="feature-pill">In-place editing</span>
+        <span class="feature-pill">Font-aware output</span>
+        <span class="feature-pill">Fast local workflow</span>
+      </div>
+    </div>
+
+    <div class="preview-card" aria-label="Application preview">
+      <div class="document-window">
+        <div class="window-topbar">
+          <span class="dot red"></span>
+          <span class="dot yellow"></span>
+          <span class="dot green"></span>
+        </div>
+
+        <div class="page-sheet">
+          <div class="page-lines">
+            <div class="line"></div>
+            <div class="line"></div>
+            <div class="line"></div>
+            <div class="line"></div>
+          </div>
+        </div>
+      </div>
+      <div class="floating-tag">Updated PDF ready</div>
+    </div>
+  </section>
+
+  <section class="workspace">
+    <div class="workspace-header">
+      <h2>Workspace</h2>
+      <div class="workspace-actions">
+        <label class="secondary-btn" for="fileInput">Replace PDF</label>
+      </div>
+    </div>
+
+    <div id="pages">
+      <div class="empty-state">
+        <h3>Open a PDF to start editing.</h3>
+        <p>Choose any PDF file and the app will extract its text so you can edit it directly in place.</p>
+      </div>
+    </div>
+  </section>
+</div>
+
+<input type="file" id="fileInput" accept="application/pdf" />
+
+<script>
+const API_BASE = "";
+
+let sessionId = null;
+let dirtyEdits = {};
+
+const fileInput = document.getElementById("fileInput");
+const pagesEl = document.getElementById("pages");
+const statusEl = document.getElementById("status");
+const saveBtn = document.getElementById("saveBtn");
+const previewBtn = document.getElementById("previewBtn");
+
+previewBtn.addEventListener("click", () => {
+  document.querySelector(".workspace").scrollIntoView({ behavior: "smooth", block: "start" });
+});
+
+fileInput.addEventListener("change", async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  statusEl.textContent = "Uploading & extracting text…";
+  dirtyEdits = {};
+  saveBtn.disabled = true;
+
+  const form = new FormData();
+  form.append("file", file);
+
+  try {
+    const res = await fetch(`${API_BASE}/upload`, { method: "POST", body: form });
+    if (!res.ok) throw new Error(await res.text());
+    const data = await res.json();
+    sessionId = data.session_id;
+    renderPages(data.pages);
+    statusEl.textContent = `Loaded "${file.name}" — ${data.pages.length} page(s). Click any text to edit.`;
+  } catch (err) {
+    statusEl.textContent = "Error: " + err.message;
+    console.error(err);
+  }
+});
+
+function renderPages(pages) {
+  pagesEl.innerHTML = "";
+  for (const page of pages) {
+    const wrap = document.createElement("div");
+    wrap.className = "page-wrap";
+    wrap.style.width = page.width + "px";
+    wrap.style.height = page.height + "px";
+
+    const img = document.createElement("img");
+    img.src = "data:image/png;base64," + page.image;
+    img.style.width = page.width + "px";
+    img.style.height = page.height + "px";
+    wrap.appendChild(img);
+
+    for (const span of page.spans) {
+      const [x0, y0, x1, y1] = span.bbox;
+      const box = document.createElement("div");
+      box.className = "span-box";
+      box.contentEditable = "true";
+      box.spellcheck = false;
+      box.dataset.spanId = span.id;
+      box.style.left = x0 + "px";
+      box.style.top = y0 + "px";
+      box.style.width = Math.max(x1 - x0, 10) + "px";
+      box.style.minHeight = (y1 - y0) + "px";
+      box.style.fontSize = Math.max((y1 - y0) * 0.75, 8) + "px";
+      box.style.lineHeight = (y1 - y0) + "px";
+      box.textContent = span.text;
+
+      box.addEventListener("focus", () => {
+        requestAnimationFrame(() => {
+          const range = document.createRange();
+          range.selectNodeContents(box);
+          const sel = window.getSelection();
+          sel.removeAllRanges();
+          sel.addRange(range);
+        });
+      });
+
+      box.addEventListener("mousedown", (e) => {
+        e.stopPropagation();
+      });
+
+      box.addEventListener("input", () => {
+        const newText = box.textContent;
+        if (newText !== span.text) {
+          dirtyEdits[span.id] = newText;
+          box.classList.add("dirty");
+        } else {
+          delete dirtyEdits[span.id];
+          box.classList.remove("dirty");
+        }
+        saveBtn.disabled = Object.keys(dirtyEdits).length === 0;
+      });
+
+      wrap.appendChild(box);
+    }
+
+    pagesEl.appendChild(wrap);
+  }
+}
+
+saveBtn.addEventListener("click", async () => {
+  if (!sessionId || Object.keys(dirtyEdits).length === 0) return;
+  statusEl.textContent = "Applying edits…";
+  saveBtn.disabled = true;
+
+  const form = new FormData();
+  form.append("session_id", sessionId);
+  form.append("edits", JSON.stringify(dirtyEdits));
+
+  try {
+    const res = await fetch(`${API_BASE}/edit`, { method: "POST", body: form });
+    if (!res.ok) throw new Error(await res.text());
+    statusEl.textContent = "Done — downloading edited PDF…";
+    window.location.href = `${API_BASE}/download/${sessionId}`;
+    dirtyEdits = {};
+  } catch (err) {
+    statusEl.textContent = "Error: " + err.message;
+    saveBtn.disabled = false;
+  }
+});
+</script>
+
+</body>
+</html>
